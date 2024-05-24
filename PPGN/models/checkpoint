@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/hadh2/projects/cross_domain/cross_domain/PPGN/models/model.ckpt"
+all_model_checkpoint_paths: "/home/hadh2/projects/cross_domain/cross_domain/PPGN/models/model.ckpt"
