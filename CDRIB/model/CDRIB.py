@@ -10,7 +10,7 @@ class CDRIB(nn.Module):
     def __init__(self, opt):
         super(CDRIB, self).__init__()
         self.opt=opt
-
+        self.device = 'cuda:{}'.format(self.opt['cuda'])
         self.source_GNN = VBGE(opt)
         self.target_GNN = VBGE(opt)
         self.criterion = nn.BCEWithLogitsLoss()
@@ -37,12 +37,12 @@ class CDRIB(nn.Module):
         self.source_item_index = torch.arange(0, self.opt["source_item_num"], 1)
         self.target_item_index = torch.arange(0, self.opt["target_item_num"], 1)
 
-        self.criterion.to('cuda:{}'.format(self.opt['cuda']))
+        self.criterion.to(self.device)
         # self.shared_user = self.shared_user.cuda()
-        self.source_user_index = self.source_user_index.to('cuda:{}'.format(self.opt['cuda']))
-        self.target_user_index = self.target_user_index.to('cuda:{}'.format(self.opt['cuda']))
-        self.source_item_index = self.source_item_index.to('cuda:{}'.format(self.opt['cuda']))
-        self.target_item_index = self.target_item_index.to('cuda:{}'.format(self.opt['cuda']))
+        self.source_user_index = self.source_user_index.to(self.device)
+        self.target_user_index = self.target_user_index.to(self.device)
+        self.source_item_index = self.source_item_index.to(self.device)
+        self.target_item_index = self.target_item_index.to(self.device)
 
     def source_predict_nn(self, user_embedding, item_embedding):
         fea = torch.cat((user_embedding, item_embedding), dim=-1)
@@ -81,7 +81,7 @@ class CDRIB(nn.Module):
         pos = F.sigmoid(pos)
         neg = F.sigmoid(neg)
         gamma = torch.tensor(self.opt["margin"])
-        gamma = gamma.to('cuda:{}'.format(self.opt['cuda']))
+        gamma = gamma.to(self.device)
         return F.relu(gamma - pos + neg).mean()
 
     def dis(self, A, B):
@@ -114,8 +114,8 @@ class CDRIB(nn.Module):
                 pos_label, neg_label = torch.ones(pos.size()), torch.zeros(
                     neg_1.size())
 
-                pos_label = pos_label.to('cuda:{}'.format(self.opt['cuda']))
-                neg_label = neg_label.to('cuda:{}'.format(self.opt['cuda']))
+                pos_label = pos_label.to(self.device)
+                neg_label = neg_label.to(self.device)
 
                 self.critic_loss = self.criterion(pos, pos_label) + self.criterion(neg_1, neg_label) +self.criterion(neg_2, neg_label)
             else :

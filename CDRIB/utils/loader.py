@@ -18,11 +18,12 @@ class DataLoader(object):
         self.batch_size = batch_size
         self.opt = opt
         self.eval = evaluation
+        data_path = 'dataset/generated_data'
 
         # ************* source data *****************
-        source_train_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/generated_data', filename, 'train.txt')
-        source_valid_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/generated_data', filename, 'valid.txt')
-        source_test_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/generated_data', filename, 'test.txt')
+        source_train_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), data_path, filename, 'train.txt')
+        source_valid_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), data_path, filename, 'valid.txt')
+        source_test_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), data_path, filename, 'test.txt')
 
         self.source_ma_set, self.source_ma_list, self.source_train_data, self.source_user_set, self.source_item_set = self.read_train_data(source_train_data)
         if evaluation == -1:
@@ -32,9 +33,9 @@ class DataLoader(object):
         # ************* target data *****************
         filename = filename.split("_")
         filename = filename[1] + "_" + filename[0]
-        target_train_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/generated_data', filename, 'train.txt')
-        target_valid_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/generated_data', filename, 'valid.txt')
-        target_test_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dataset/generated_data', filename, 'test.txt')
+        target_train_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), data_path, filename, 'train.txt')
+        target_valid_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), data_path, filename, 'valid.txt')
+        target_test_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), data_path, filename, 'test.txt')
         self.target_ma_set, self.target_ma_list, self.target_train_data, self.target_user_set, self.target_item_set = self.read_train_data(
             target_train_data)
         if evaluation == -1:
@@ -100,7 +101,7 @@ class DataLoader(object):
 
         return ma, ma_list, train_data, user_set, item_set
 
-    def read_test_data(self, test_file, item_set):
+    def read_test_data(self, test_file, item_set: set):
         user_item_set = {}
         self.MIN_USER = 10000000
         self.MAX_USER = 0
@@ -123,16 +124,11 @@ class DataLoader(object):
                 line=line.strip().split("\t")
                 user = int(line[0])
                 item = int(line[1])
+                
                 if item in item_set:
                     ret = [item]
-                    for i in range(self.opt["test_sample_number"]):
-                        while True:
-                            rand = item_list[random.randint(0, len(item_set) - 1)]
-                            if self.eval == 1:
-                                if rand in user_item_set[user]:
-                                    continue
-                            ret.append(rand)
-                            break
+                    neg_items = item_set.difference(user_item_set[user])
+                    ret.extend(random.sample(list(neg_items), self.opt['test_sample_number']))
                     test_data.append([user, ret])
                 else :
                     cnt += 1
@@ -145,6 +141,7 @@ class DataLoader(object):
         for d in self.test_data:
             processed.append([d[0],d[1]])
         return processed
+    
     def preprocess(self):
         """ Preprocess the data and convert to ids. """
         processed = []
@@ -161,13 +158,8 @@ class DataLoader(object):
         return ma_list[user][rand]
 
     def find_neg(self, ma_set, user, type):
-        n = 5
-        while n:
-            n -= 1
-            rand = random.randint(0, self.opt[type] - 1)
-            if rand not in ma_set[user]:
-                return rand
-        return rand
+        rand = list(set(range(0, self.opt[type])).difference(ma_set[user]))
+        return random.choice(rand)
 
     def __len__(self):
         return len(self.data)

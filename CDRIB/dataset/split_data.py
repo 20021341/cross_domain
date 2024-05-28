@@ -47,46 +47,27 @@ def generate_train_valid_test(file, total, common, user, item, choose):
     ## user: user mapping dict from index in file reindex.txt to index of that domain only
     ## item: same
     ## chose: 0 is source data, 1 is target data
-    itemx = 0
 
-    L = int(len(common) * 0.1)
-    LL = L * 9
-    LLL = L * 8
-
-    train_number = 0
-    valid_number = 0
-    test_number = 0
+    start_user_id = int(len(common) * 0.8)
+    
     with codecs.open(train_file,"w",encoding="utf-8") as fw:
         with codecs.open(test_file, "w", encoding="utf-8") as fw2:
             with codecs.open(valid_file, "w", encoding="utf-8") as fw3:
-                for da in total: #da is the old user index from file reindex.txt
-                    if choose == 0 and user[da] >= LL and user[da] < len(common): 
-                        #10% last user of common user is used as valid or test data (random)
-                        for i in total[da]: # total[da] is the item list of old user index
-                            itemx = max(itemx, int(item[i]))
-                            if random.randint(0,1):
-                                test_number+=1
-                                fw2.write(str(user[da]) + "\t" + str(item[i]) + "\n") # cold-start user for test
-                            else :
-                                valid_number+=1
-                                fw3.write(str(user[da]) + "\t" + str(item[i]) + "\n")  # cold-start user for valid
-                    elif choose == 1 and user[da] >= LLL and user[da] < LL:
-                        for i in total[da]:
-                            itemx = max(itemx, int(item[i]))
-                            if random.randint(0, 1):
-                                test_number += 1
-                                fw2.write(str(user[da]) + "\t" + str(item[i]) + "\n")  # cold-start user for test
-                            else:
-                                valid_number += 1
-                                fw3.write(str(user[da]) + "\t" + str(item[i]) + "\n")  # cold-start user for valid
-                    else:
-                        for i in total[da]:
-                            train_number += 1
-                            itemx = max(itemx, int(item[i]))
-                            fw.write(str(user[da])+"\t"+str(item[i])+"\n")
+                for user_old_id in total: #da is the old user index from file reindex.txt
+                    if user[user_old_id] in range(start_user_id, len(common) + 1): 
+                        item_old_ids = total[user_old_id]
+                        item_old_ids = random.shuffle(item_old_ids)
 
-    print("Train {}, valid {}, test {}".format(train_number, valid_number, test_number))
-    print("sss", itemx)
+                        split_item_id = len(item_old_ids) // 2
+                        for id in item_old_ids[:split_item_id]:
+                            fw2.write(str(user[user_old_id]) + "\t" + str(item[id]) + "\n")
+                        for id in item_old_ids[split_item_id:]:
+                            fw3.write(str(user[user_old_id]) + "\t" + str(item[id]) + "\n")
+                        
+                    else:
+                        for id in total[user_old_id]:
+                            fw.write(str(user[user_old_id])+"\t"+str(item[id])+"\n")
+
 
 if __name__ == '__main__':
     random.seed(42)

@@ -70,6 +70,7 @@ torch.cuda.manual_seed(args.seed)
 init_time = time.time()
 # make opt
 opt = vars(args)
+device = 'cuda:{}'.format(opt['cuda'])
 seed_everything(opt["seed"])
 
 # load data adj-matrix; Now sparse tensor ,But not setting in gpu.
@@ -90,13 +91,13 @@ if "CDRIB" in opt["model"]:
     target_adj = target_G.adj
     print("graph loaded!")
 
-    source_UV = source_UV.to('cuda:{}'.format(opt['cuda']))
-    source_VU = source_VU.to('cuda:{}'.format(opt['cuda']))
-    source_adj = source_adj.to('cuda:{}'.format(opt['cuda']))
+    source_UV = source_UV.to(device)
+    source_VU = source_VU.to(device)
+    source_adj = source_adj.to(device)
 
-    target_UV = target_UV.to('cuda:{}'.format(opt['cuda']))
-    target_VU = target_VU.to('cuda:{}'.format(opt['cuda']))
-    target_adj = target_adj.to('cuda:{}'.format(opt['cuda']))
+    target_UV = target_UV.to(device)
+    target_VU = target_VU.to(device)
+    target_adj = target_adj.to(device)
 
 
 model_id = opt['id'] if len(opt['id']) > 1 else '0' + opt['id']
@@ -185,12 +186,13 @@ for epoch in range(1, opt['num_epoch'] + 1):
         HT_5 = 0.0
         HT_10 = 0.0
 
-        valid_entity = 0.0
+        valid_entity = 0
         for i, batch in enumerate(dataloder):
             if choose:
                 predictions = trainer.source_predict(batch)
             else :
                 predictions = trainer.target_predict(batch)
+                
             for pred in predictions:
                 rank = (-pred).argsort().argsort()[0].item()
 
@@ -205,8 +207,6 @@ for epoch in range(1, opt['num_epoch'] + 1):
                 if rank < 10:
                     NDCG_10 += 1 / np.log2(rank + 2)
                     HT_10 += 1
-                if valid_entity % 100 == 0:
-                    print('.', end='')
 
         s_mrr = MRR / valid_entity
         s_ndcg_5 = NDCG_5 / valid_entity

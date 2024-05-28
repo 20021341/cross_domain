@@ -41,6 +41,7 @@ class Trainer(object):
 class CrossTrainer(Trainer):
     def __init__(self, opt):
         self.opt = opt
+        self.device = 'cuda:{}'.format(self.opt['cuda'])
         if self.opt["model"] == "CDRIB":
             self.model = CDRIB(opt)
         else :
@@ -48,19 +49,19 @@ class CrossTrainer(Trainer):
             exit(0)
 
         self.criterion = nn.BCEWithLogitsLoss()
-        self.model.to('cuda:{}'.format(opt['cuda']))
-        self.criterion.to('cuda:{}'.format(opt['cuda']))
+        self.model.to(self.device)
+        self.criterion.to(self.device)
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.model.parameters(), opt['lr'], opt["weight_decay"])
         self.epoch_rec_loss = []
 
     def unpack_batch_predict(self, batch):
-        inputs = [Variable(b.to('cuda:{}'.format(self.opt['cuda']))) for b in batch]
+        inputs = [Variable(b.to(self.device)) for b in batch]
         user_index = inputs[0]
         item_index = inputs[1]
         return user_index, item_index
 
     def unpack_batch(self, batch):
-        inputs = [Variable(b.to('cuda:{}'.format(self.opt['cuda']))) for b in batch]
+        inputs = [Variable(b.to(self.device)) for b in batch]
         source_user = inputs[0]
         source_pos_item = inputs[1]
         source_neg_item = inputs[2]
@@ -72,7 +73,7 @@ class CrossTrainer(Trainer):
 
     def HingeLoss(self, pos, neg):
         gamma = torch.tensor(self.opt["margin"])
-        gamma = gamma.to('cuda:{}'.format(self.opt['cuda']))
+        gamma = gamma.to(self.device)
         return F.relu(gamma - pos + neg).mean()
 
     def source_predict(self, batch):
@@ -149,10 +150,10 @@ class CrossTrainer(Trainer):
         target_pos_labels, target_neg_labels = torch.ones(pos_target_score.size()), torch.zeros(
                 pos_target_score.size())
 
-        source_pos_labels = source_pos_labels.to('cuda:{}'.format(self.opt['cuda']))
-        source_neg_labels = source_neg_labels.to('cuda:{}'.format(self.opt['cuda']))
-        target_pos_labels = target_pos_labels.to('cuda:{}'.format(self.opt['cuda']))
-        target_neg_labels = target_neg_labels.to('cuda:{}'.format(self.opt['cuda']))
+        source_pos_labels = source_pos_labels.to(self.device)
+        source_neg_labels = source_neg_labels.to(self.device)
+        target_pos_labels = target_pos_labels.to(self.device)
+        target_neg_labels = target_neg_labels.to(self.device)
 
 
         loss = self.criterion(pos_source_score, source_pos_labels) + self.criterion(neg_source_score, source_neg_labels) + self.criterion(pos_target_score, target_pos_labels) + self.criterion(neg_target_score, target_neg_labels) + self.model.source_GNN.encoder[-1].kld_loss + self.model.target_GNN.encoder[-1].kld_loss + self.model.critic_loss
